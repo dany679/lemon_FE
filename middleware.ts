@@ -13,7 +13,10 @@ export async function middleware(request: NextRequest) {
   const isPublic =
     publicPaths.includes(pathname) ||
     pathname.startsWith("/api/auth") ||
-    pathname.startsWith("https://dynamox-fe.vercel.app/api/auth");
+    publicPaths.includes("/api/auth");
+
+  console.log("MIDDLEWARE-----------------------------------------------");
+  console.log(pathname);
 
   if (isPublic) return NextResponse.next();
   const token = await getToken({
@@ -27,7 +30,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL("/login", request.url));
   }
 
-  // console.log("MIDDLEWARE-----------------------------------------------");
   return NextResponse.next({
     request: {
       // Apply new request headers
