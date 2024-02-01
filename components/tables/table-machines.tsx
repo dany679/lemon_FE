@@ -36,7 +36,6 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   "&:nth-of-type(odd)": {
     backgroundColor: theme.palette.action.hover,
   },
-  // hide last border
   "&:last-child td, &:last-child th": {
     border: 0,
   },
@@ -49,9 +48,6 @@ interface TableMachineProps {
     name: string;
     type: string;
   }[];
-  // handleCb: () => void;
-  // handleUpdate?: (id: false | IProduct) => void;
-  // update?: number;
 }
 
 const TableMachine = ({ data, searching, callback }: TableMachineProps) => {
@@ -74,7 +70,7 @@ const TableMachine = ({ data, searching, callback }: TableMachineProps) => {
     }
     callback();
     // router.refresh();
-  }, [id, router, url, page, data]);
+  }, [id, router, url, page, data, callback]);
 
   const handleDeleteMachine = async (id: string) => {
     try {

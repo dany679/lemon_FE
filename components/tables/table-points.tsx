@@ -69,7 +69,7 @@ const TablePoints = ({ data, searching, callback }: TablePointsProps) => {
     }
     callback();
     // router.refresh();
-  }, [id, url, page, data, callback]);
+  }, [id, url, page, data, callback, router]);
 
   const handleDeletePoint = async (id: string) => {
     try {
@@ -94,6 +94,7 @@ const TablePoints = ({ data, searching, callback }: TablePointsProps) => {
     <div className="flex flex-col ">
       <PointModal
         // onConfirm={() => handleDeletePoint(row.id)}
+        callback={() => callback()}
         update={true}
         openModal={openModal && hasId}
         closeModal={() => {

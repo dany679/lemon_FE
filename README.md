@@ -1,9 +1,12 @@
-
 ## 🚀 Tecnologias
 
 - Tailwind design
 - Tailwind animations and effects
 - form-hooks
+- zod
+- Mui
+- Next auth
+- search url
 - How to reuse layouts
 - Folder structure in Next 13 App Router
 
@@ -23,11 +26,10 @@ MIT
 
 ### Install packages
 
-
 ### Start the app
 
 ```shell
-yarn  
+yarn
 ```
 
 ### start

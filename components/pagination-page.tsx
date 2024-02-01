@@ -19,10 +19,10 @@ export default function PaginationPage({
   const searchParams = useSearchParams();
   const hasPage = !!searchParams.get("page");
   let url = `${pathname}?${searchParams}`;
- 
+
   useEffect(() => {
     if (!hasPage) window.location.href = url + "page=1";
-  }, [hasPage]);
+  }, [hasPage, url]);
 
   const newPage = (change: number) => {
     const urlPage = Number(page);
