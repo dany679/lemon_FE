@@ -1,5 +1,6 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-
+//i did not need this tree
+//but i let one example because i believe you guys can be using
 type InitialState = {
   user: AuthState;
 };

@@ -1,30 +1,25 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-// import { Icons } from "@/components/icons";
-// import { useToast } from "@/components/ui/use-toast";
-// import { ToastAction } from "@/components/ui/toast";
-import { signIn } from "next-auth/react";
 
 import { Heading } from "@/components/Heading";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
+import InputPassword from "@/components/inputs/password";
+import { DevTool } from "@hookform/devtools";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Github, Loader } from "lucide-react";
+import {
+  Box,
+  Button,
+  LinearProgress,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { formSchema } from "./constants";
-
-// interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
-
 interface IUser {
   name: string;
   email: string;
@@ -32,48 +27,17 @@ interface IUser {
 }
 
 export default function UserRegisterForm() {
-  //   const { toast } = useToast();
+  const [hydrated, setHydrated] = useState(false);
 
   const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const handleLoginToProvider = async () => {
-    try {
-      const user = await signIn("github", { callbackUrl: "/" });
-      console.log(user);
-    } catch (error) {}
-  };
   const onSubmitting = async (values: z.infer<typeof formSchema>) => {
     try {
       const res = await signIn<"credentials">("credentials", {
         ...values,
         redirect: false,
       });
-
-      const response = await request.data;
-
-      console.log("USER REGISTER FORM", res);
-      console.log("GOOOO");
-      router.push("/");
-
-      // if (!request.ok) {
-      //   //   toast({
-      //   //     title: "Oooops...",
-      //   //     description: response.error,
-      //   //     variant: "destructive",
-      //   //     action: (
-      //   //       <ToastAction altText="Tente Novamente">Tente Novamente</ToastAction>
-      //   //     ),
-      //   //   });
-      // } else {
-      //   console.log(response);
-      //  router.push("/");
-      // }
-
-      // setTimeout(() => {
-      //   setIsLoading(false);
-      // }, 5000);
+      if (res?.ok) router.push("/");
     } catch (error) {
     } finally {
       form.reset();
@@ -87,85 +51,70 @@ export default function UserRegisterForm() {
       email: "",
     },
   });
-  const isSubmitting = form.formState.isSubmitting;
-
+  const { register, control } = form;
+  const { isSubmitting, errors } = form.formState;
+  useEffect(() => {
+    // This forces a rerender, so the date is rendered
+    // the second time but not the first
+    setHydrated(true);
+  }, []);
+  if (!hydrated) {
+    // Returns null on first render, so the client and server match
+    return null;
+  }
   return (
     <div className={cn("flex flex-col w-full m-10 max-w-md gap-4")}>
-      <Heading.title
-        title="Login"
-        description="Crie sua conta ou faca login com o github"
-      />
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmitting)}
-          className="grid gap-2 "
-        >
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="col-span-12 ">
-                <FormLabel className="sr-only" htmlFor="email">
-                  Email
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="email@email.com"
-                    {...field}
-                    type="email"
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem className="col-span-12 ">
-                <FormLabel className="sr-only" htmlFor="password">
-                  Password
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="*****" {...field} type="password" />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <Button
-            variant="dark"
-            type="submit"
-            disabled={isSubmitting}
-            className="col-span-12  w-full  mt-auto mb-auto "
-          >
-            {isSubmitting ? "...Enviar" : " Enviar"}
-          </Button>
-        </form>
-      </Form>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Ou continue com
-          </span>
-        </div>
-      </div>
-      <Button
-        onClick={() => handleLoginToProvider()}
-        variant="dark"
-        type="button"
-        disabled={isSubmitting}
-        className="mr-2 h-10 w-full  "
+      <Heading.title title="Login" description="Faça login ou crie sua conta" />
+      <Box
+      // sx={{
+      //   "& > :not(style)": { m: 10, width: "50ch" },
+      // }}
       >
-        {isSubmitting ? (
-          <Loader className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Github className="mr-2 h-4 w-4" />
-        )}{" "}
-        Github
-      </Button>
+        <form onSubmit={form.handleSubmit(onSubmitting)}>
+          <Stack spacing={2} className="border-2 border-red-500/900  ">
+            <TextField
+              className="border-1 border-r-emerald-400"
+              {...register("email", {
+                required: "Email é obrigatorio",
+              })}
+              error={!!errors.email}
+              helperText={!!errors.email?.message}
+              label="Email"
+              type="email"
+              variant="outlined"
+            />
+
+            <InputPassword
+              name="password"
+              register={register}
+              error={errors.password}
+            />
+
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              variant="contained"
+              className="col-span-12  w-full  mt-4  "
+            >
+              {isSubmitting ? (
+                <Box sx={{ width: "100%", py: 1 }}>
+                  <LinearProgress />
+                </Box>
+              ) : (
+                " Enviar"
+              )}
+            </Button>
+          </Stack>
+        </form>
+        <Stack direction="row" width={"100%"} justifyContent="flex-end" mt={2}>
+          <Typography mr={1}>Ainda não possui conta?</Typography>
+          <Link href="/registrar">
+            {" "}
+            <Typography color="blue">Registre-se</Typography>
+          </Link>
+        </Stack>
+      </Box>
+      <DevTool control={control} />
     </div>
   );
 }

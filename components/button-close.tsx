@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
-
+import CachedIcon from "@mui/icons-material/Cached";
+import { Button, Tooltip } from "@mui/material";
 const ButtonClose = ({
   onClick,
   className,
@@ -12,14 +12,16 @@ const ButtonClose = ({
 }) => {
   return (
     <div className={cn(" flex w-full justify-end mr-5 ", className)}>
-      <button typeof="button" onClick={onClick}>
-        <X
-          className={cn(
-            " relative right-2 top-2 cursor-pointer w-4 h-4",
-            classNameButton
-          )}
-        />
-      </button>
+      <Tooltip title="limpar dados">
+        <Button
+          variant="outlined"
+          typeof="button"
+          onClick={onClick}
+          className="cursor-pointer mb-2"
+        >
+          <CachedIcon />
+        </Button>
+      </Tooltip>
     </div>
   );
 };

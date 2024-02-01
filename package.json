@@ -1,5 +1,5 @@
 {
-  "name": "next-plin",
+  "name": "DYANAMOX",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,13 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/cache": "^11.11.0",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@hookform/devtools": "^4.3.1",
     "@hookform/resolvers": "^3.3.0",
+    "@mui/icons-material": "^5.15.6",
+    "@mui/material": "^5.15.6",
+    "@mui/material-nextjs": "^5.15.6",
     "@prisma/client": "^5.2.0",
-    "@radix-ui/react-dialog": "^1.0.5",
-    "@radix-ui/react-label": "^2.0.2",
-    "@radix-ui/react-popover": "^1.0.7",
-    "@radix-ui/react-select": "^2.0.0",
-    "@radix-ui/react-slot": "^1.0.2",
     "@reduxjs/toolkit": "^1.9.7",
     "@types/node": "20.5.2",
     "@types/react": "18.2.20",
@@ -48,6 +50,7 @@
     "zod": "^3.22.2"
   },
   "devDependencies": {
+    "cypress": "^13.6.4",
     "encoding": "^0.1.13"
   }
 }

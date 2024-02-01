@@ -1,6 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import { cn } from "@/lib/utils";
 // import { Icons } from "@/components/icons";
 // import { useToast } from "@/components/ui/use-toast";
@@ -8,78 +7,37 @@ import { cn } from "@/lib/utils";
 import { signIn } from "next-auth/react";
 
 import { Heading } from "@/components/Heading";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from "@/components/ui/form";
+// import { FormControl } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Github, Loader } from "lucide-react";
+import { Button, Stack, TextField, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { formSchema } from "./constants";
 
 // interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-interface IUser {
-  name: string;
-  email: string;
-  password: string;
-}
-
+import InputPassword from "@/components/inputs/password";
+import axios from "@/lib/axios";
+import { Box, LinearProgress } from "@mui/material";
+import Link from "next/link";
+import toast from "react-hot-toast";
 export default function UserRegisterForm() {
-  //   const { toast } = useToast();
-
   const router = useRouter();
-
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-
-  const handleLoginToProvider = async () => {
-    try {
-      const user = await signIn("github", { callbackUrl: "/" });
-      console.log(user);
-    } catch (error) {}
-  };
   const onSubmitting = async (values: z.infer<typeof formSchema>) => {
     try {
-      console.log(values);
-      // const { data } = await axios.post(`${BASE_HTTP}/user`, {
-      //   ...values,
-      // });
-      const data = values;
+      await axios.post(`/auth/signup`, {
+        ...values,
+        provider: "EMAIL",
+      });
       const res = await signIn<"credentials">("credentials", {
-        ...data,
+        ...values,
         redirect: false,
       });
-
-      // const response = await request.data;
-
-      console.log("USER REGISTER FORM", res);
-
-      // if (!request.ok) {
-      //   //   toast({
-      //   //     title: "Oooops...",
-      //   //     description: response.error,
-      //   //     variant: "destructive",
-      //   //     action: (
-      //   //       <ToastAction altText="Tente Novamente">Tente Novamente</ToastAction>
-      //   //     ),
-      //   //   });
-      // } else {
-      //   console.log(response);
-      //    router.push("/");
-      // }
-
-      // setTimeout(() => {
-      //   setIsLoading(false);
-      // }, 5000);
-    } catch (error) {
-    } finally {
+      if (res?.ok) router.push("/");
       form.reset();
+    } catch (error: any) {
+      if (error?.response?.status === 409) toast.error("Usuario já existe");
+    } finally {
     }
   };
 
@@ -91,103 +49,68 @@ export default function UserRegisterForm() {
       email: "",
     },
   });
-  const isSubmitting = form.formState.isSubmitting;
+  const { register, control } = form;
+  const { isSubmitting, errors } = form.formState;
 
   return (
-    <div
-      className={cn("flex flex-col w-full m-10 max-w-md gap-4")}
-      // {...props}
-    >
-      {/* {JSON.stringify(data)} */}
+    <div className={cn("flex flex-col w-full m-10 max-w-md gap-4")}>
       <Heading.title
         title="Registre-se"
-        description="Crie sua conta ou faca login com o github"
+        description="Crie sua conta ou faca login"
       />
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmitting)}
-          className="grid gap-2 "
-        >
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="col-span-12 ">
-                <FormLabel className="sr-only" htmlFor="name">
-                  Nome
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="nome" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="col-span-12 ">
-                <FormLabel className="sr-only" htmlFor="email">
-                  Email
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="email@email.com"
-                    {...field}
-                    type="email"
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem className="col-span-12 ">
-                <FormLabel className="sr-only" htmlFor="password">
-                  Password
-                </FormLabel>
-                <FormControl>
-                  <Input placeholder="*****" {...field} type="password" />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <Button
-            variant="dark"
-            type="submit"
-            disabled={isSubmitting}
-            className="col-span-12  w-full  mt-auto mb-auto "
-          >
-            {isSubmitting ? "...Enviar" : " Enviar"}
-          </Button>
+      <Box>
+        <form onSubmit={form.handleSubmit(onSubmitting)}>
+          <Stack spacing={2} className="border-2 border-red-500/900  ">
+            <TextField
+              className="border-1 border-r-emerald-400"
+              {...register("name", {
+                required: "Nome é obrigatorio",
+              })}
+              error={!!errors.name}
+              helperText={!!errors.name?.message}
+              label="Nome"
+              type="text"
+              variant="outlined"
+            />
+            <TextField
+              className="border-1 border-r-emerald-400"
+              {...register("email", {
+                required: "Email é obrigatorio",
+              })}
+              error={!!errors.email}
+              helperText={!!errors.email?.message}
+              label="Email"
+              type="email"
+              variant="outlined"
+            />
+            <InputPassword
+              name="password"
+              register={register}
+              error={errors.password}
+            />
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              variant="contained"
+              className="col-span-12  w-full  mt-4  "
+            >
+              {isSubmitting ? (
+                <Box sx={{ width: "100%", py: 1 }}>
+                  <LinearProgress />
+                </Box>
+              ) : (
+                " Criar conta"
+              )}
+            </Button>
+          </Stack>
         </form>
-      </Form>
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Ou continue com
-          </span>
-        </div>
-      </div>
-      <Button
-        onClick={() => handleLoginToProvider()}
-        variant="dark"
-        type="button"
-        disabled={isSubmitting}
-        className="mr-2 h-10 w-full  "
-      >
-        {isSubmitting ? (
-          <Loader className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          <Github className="mr-2 h-4 w-4" />
-        )}{" "}
-        Github
-      </Button>
+      </Box>
+      <Stack direction="row" width={"100%"} justifyContent="flex-end" mt={2}>
+        <Typography mr={1}>Já possui conta?</Typography>
+        <Link href="/login">
+          <Typography color="blue">Login</Typography>
+        </Link>
+      </Stack>
     </div>
   );
 }

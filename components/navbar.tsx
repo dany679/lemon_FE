@@ -1,9 +1,9 @@
-import MobileSidebar from "@/components/mobile-sidebar";
+import PersistentDrawerLeft from "./mobile-drawer";
 // import { UserButton } from "@clerk/nextjs";
 const Navbar = async () => {
   return (
     <div className="flex items-center p-4">
-      <MobileSidebar />
+      <PersistentDrawerLeft />
       <div className="flex w-full justify-end">
         {/* <UserButton afterSignOutUrl="/" /> */}
       </div>
