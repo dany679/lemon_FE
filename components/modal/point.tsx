@@ -69,11 +69,10 @@ export default function PointModal({
   const id = searchParams.get("id");
 
   const [isLoading, setIsLoading] = React.useState(!!update);
+  const [isLoadingMemo, setIsLoadingMemo] = React.useState(!!update);
   const [options, setOptions] = React.useState<MachineProps[]>([]);
+  const [optionsD, setOptionsD] = React.useState<MachineProps | null>(null);
 
-  const handleClose = () => {
-    closeModal();
-  };
   const form = useForm<z.infer<typeof formSchemaPoint>>({
     resolver: zodResolver(formSchemaPoint),
     defaultValues: {
@@ -87,7 +86,29 @@ export default function PointModal({
   const { register, control } = form;
   const { isSubmitting, errors } = form.formState;
 
+  const updatedModal = React.useCallback(async () => {
+    setIsLoading(() => true);
+    if (!update) return;
+    if (!openModal) return;
+    if (!id) return;
+    try {
+      const { data } = await axiosAuth.get(`/access_points/${id}`, {});
+      setOptionsD(data.Machine);
+      form.setValue("id", data.id);
+      form.setValue("machineId", data.machineId);
+      form.setValue("name", data.name);
+      form.setValue("sensor", data.sensor);
+      form.setValue("sensorID", data.sensorID);
+      // console.log(data);
+    } catch (error: any) {
+      //connection error
+      closeModal();
+    } finally {
+      setIsLoading(() => false);
+    }
+  }, [axiosAuth, form, closeModal, openModal, update, id]);
   const optionsFound = React.useCallback(async () => {
+    setIsLoading(() => true);
     if (!openModal) return;
     try {
       const { data } = await axiosAuth.get(
@@ -98,45 +119,34 @@ export default function PointModal({
       return data.machines;
     } catch (error: any) {
       //connection error
-      handleClose();
-    } finally {
-      // handleClose();
-    }
-  }, []);
-
-  const updatedModal = React.useCallback(async () => {
-    if (!update) return;
-    if (!openModal) return;
-    if (!id) return;
-    setIsLoading(() => true);
-
-    try {
-      const { data } = await axiosAuth.get(`/access_points/${id}`, {});
-      form.setValue("id", data.id);
-      form.setValue("machineId", data.machineId);
-      form.setValue("name", data.name);
-      form.setValue("sensor", data.sensor);
-      form.setValue("sensorID", data.sensorID);
-    } catch (error: any) {
-      //connection error
-      handleClose();
+      closeModal();
     } finally {
       setIsLoading(() => false);
     }
-  }, [id]);
+  }, [axiosAuth, closeModal, openModal]);
   React.useEffect(() => {
     optionsFound();
-    return () => {
-      // optionsFound();
-    };
+    return () => {};
   }, [optionsFound]);
   React.useEffect(() => {
     updatedModal();
     return () => {
-      // optionsFound();
+      form.reset();
     };
-  }, [updatedModal]);
-  const optionsMemo = React.useMemo(() => options, [options]);
+  }, [updatedModal, form]);
+  // const optionsMemo = React.useMemo(() => {
+  //   setIsLoadingMemo(() => true);
+  //   const defaultOption = optionsD;
+  //   try {
+  //     if (!id) return { options, default: null };
+
+  //     return { options, default: defaultOption };
+  //   } catch (error) {
+  //     return { options, default: defaultOption };
+  //   } finally {
+  //     setIsLoadingMemo(() => false);
+  //   }
+  // }, [options, optionsD, id]);
   const onSubmitting = async (values: z.infer<typeof formSchemaPoint>) => {
     try {
       const update = values.id;
@@ -160,22 +170,13 @@ export default function PointModal({
     }
   };
 
-  const getSelectedItem = () => {
-    if (!form.watch("id")) return null;
-    return (
-      optionsMemo.find((opt) => {
-        if (opt.id == form.watch("machineId")) return opt;
-      }) || null
-    );
-  };
-
   return (
     <>
       {children && children}
       <Modal
         className=" border-radius"
         open={openModal}
-        onClose={handleClose}
+        onClose={closeModal}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
@@ -191,7 +192,7 @@ export default function PointModal({
               Preencha as informações para criar um novo ponto de acesso
             </Typography>
             <div className="absolute top-2 right-0">
-              <Button type="button" onClick={handleClose}>
+              <Button type="button" onClick={closeModal}>
                 <CloseIcon htmlColor="black" />
               </Button>
             </div>
@@ -264,26 +265,33 @@ export default function PointModal({
                   ))}
                 </Select>
               </FormControl>
+
               <Autocomplete
                 className="col-span-7 "
                 disablePortal
+                autoComplete
+                noOptionsText="Nenhuma opção encontrada"
                 id="combo-box-demo"
-                defaultValue={getSelectedItem()}
-                options={optionsMemo}
-                getOptionLabel={(options) =>
-                  `${options.name} , ${options.type}`
-                }
+                options={options}
+                isOptionEqualToValue={(option, value) => {
+                  return option.id === value.id;
+                }}
+                defaultValue={optionsD}
+                value={optionsD}
+                getOptionLabel={(options) => `${options.name}`}
                 {...register("machineId")}
                 onChange={(event, newValue) => {
                   event.preventDefault();
-                  !!newValue
-                    ? form.setValue("machineId", newValue.id)
-                    : form.reset(
-                        {
-                          machineId: undefined,
-                        },
-                        { keepDirtyValues: true }
-                      );
+                  if (!!newValue) {
+                    form.setValue("machineId", newValue.id);
+                    setOptionsD(newValue);
+                  } else
+                    form.reset(
+                      {
+                        machineId: undefined,
+                      },
+                      { keepDirtyValues: true }
+                    );
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -294,15 +302,13 @@ export default function PointModal({
                   />
                 )}
               />
+
               <Stack className="col-span-12 pt-1" direction="row-reverse">
                 <Button
                   variant="contained"
                   type="submit"
                   color="success"
-                  // onClick={() => {
-                  //   onConfirm();
-                  //   // handleClose();
-                  // }}
+                  disabled={isSubmitting}
                 >
                   Enviar
                 </Button>
@@ -310,7 +316,7 @@ export default function PointModal({
                   variant="contained"
                   color="inherit"
                   className="mx-2"
-                  onClick={handleClose}
+                  onClick={closeModal}
                 >
                   Cancelar
                 </Button>
