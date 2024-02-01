@@ -11,12 +11,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const publicPaths = ["/login", "/registrar"];
   const isPublic =
-    publicPaths.includes(pathname) ||
-    pathname.startsWith("/api/auth") ||
-    publicPaths.includes("/api/auth");
-
-  console.log("MIDDLEWARE-----------------------------------------------");
-  console.log(pathname);
+    publicPaths.includes(pathname) || pathname.startsWith("/api/auth");
 
   if (isPublic) return NextResponse.next();
   const token = await getToken({
