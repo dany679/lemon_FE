@@ -11,19 +11,16 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: "Dynamox",
-  // description: "",
-  icons: {
-    icon: "/logo.png",
-  },
-};
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// export const metadata = {
+//   title: "Company Box",
+//   // description: "",
+//   icons: {
+//     icon: "/logo.png",
+//   },
+// };
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
+  // console.log(session, "comming");
   return (
     <html lang="en" className="h-full min-h-full">
       <body className={cn("h-full min-h-full ", inter)}>

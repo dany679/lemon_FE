@@ -4,8 +4,9 @@
 /node_modules
 /.pnp
 .pnp.js
-
-# testing
+.env
+/cypress/screenshots
+.github/workflows/test.yml# testing
 /coverage
 
 # next.js

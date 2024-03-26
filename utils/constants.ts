@@ -1,7 +1,12 @@
 import ConstructionIcon from "@mui/icons-material/Construction";
 import MonitorIcon from "@mui/icons-material/Monitor";
+import "dotenv/config";
 import { ComponentType } from "react";
-export const BASE_HTTP = "http://localhost:8080";
+
+export const BASE_HTTP = process.env.NEXT_PUBLIC_HTTP;
+// export const BASE_HTTP = process.env.NEXT_BASE_HTTP;
+// console.log(process.env.NEXT_PUBLIC_HTTP, "HIT");
+// console.log(process.env.NEXT_BASE_HTTP, "BASE HTTP");
 
 export type IconComponent =
   | ComponentType<{
@@ -28,3 +33,5 @@ export const toolsObjects = {
     bgColor: "bg-sky-500/10",
   },
 };
+
+export const webTitle = "Company Box";
