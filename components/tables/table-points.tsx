@@ -2,6 +2,7 @@
 
 import useAxiosAuth from "@/lib/hooks/useAxiosAuth";
 import { cn } from "@/lib/utils";
+import { isUUID } from "@/utils/id";
 import { IPointsList } from "@/utils/interafce/points";
 import { NumParams } from "@/utils/params";
 import EditIcon from "@mui/icons-material/Edit";
@@ -51,12 +52,12 @@ interface TablePointsProps {
 
 const TablePoints = ({ data, searching, callback }: TablePointsProps) => {
   const router = useRouter();
-  const [openModal, setOpenModal] = useState(false);
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const id = searchParams.get("id");
+  const hasId = isUUID(id);
+  const [openModal, setOpenModal] = useState(hasId);
+  const pathname = usePathname();
   const page = NumParams(searchParams.get("page"), 1);
-  const hasId = !!id;
   const axiosAuth = useAxiosAuth();
 
   let url = `${pathname}?${searchParams}`;
@@ -81,10 +82,10 @@ const TablePoints = ({ data, searching, callback }: TablePointsProps) => {
     }
   };
 
-  const handleEditUrl = async (idMachine: string) => {
-    const newUrl = hasId ? url.replace(`&id=${id}`, `&id=${idMachine}`) : url + `&id=${idMachine}`;
+  const handleEditUrl = async (idPoint: string, clean = true) => {
+    const newUrl = hasId ? url.replace(`&id=${id}`, `&id=${idPoint}`) : url + `&id=${idPoint}`;
     router.push(`${newUrl}`, { scroll: false });
-    setOpenModal(true);
+    setOpenModal(clean);
   };
   return (
     <div className="flex flex-col ">
@@ -94,6 +95,9 @@ const TablePoints = ({ data, searching, callback }: TablePointsProps) => {
         update={true}
         openModal={openModal && hasId}
         closeModal={() => {
+          let newUrl = url.replace(`&id=${id}`, ``);
+          newUrl = newUrl.replace(`id=${id}`, ``);
+          router.push(`${newUrl}`, { scroll: false });
           setOpenModal(false);
         }}
       />
