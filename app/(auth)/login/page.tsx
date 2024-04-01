@@ -21,21 +21,23 @@ interface IUser {
 
 export default function UserRegisterForm() {
   const [hydrated, setHydrated] = useState(false);
+  const [error, setError] = useState<null | string>(null);
 
   const router = useRouter();
 
   const onSubmitting = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const res = await signIn<"credentials">("credentials", {
-        ...values,
-        callbackUrl: "/",
-        redirect: true,
-      });
-      if (res?.ok) router.push("/");
-    } catch (error) {
-    } finally {
-      form.reset();
-    }
+    const res = await signIn<"credentials">("credentials", {
+      ...values,
+      callbackUrl: "/",
+      redirect: false,
+    }).then(({ error, ok }: any) => {
+      setError(error);
+      console.error(error);
+      if (ok) {
+        form.reset();
+        router.push("/");
+      }
+    });
   };
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -80,7 +82,11 @@ export default function UserRegisterForm() {
             />
 
             <InputPassword name="password" label="Senha" register={register} error={errors.password} />
-
+            {error && (
+              <Typography className="bg-red-100 text-red-500 rounded" px={1} py={1}>
+                {error}
+              </Typography>
+            )}
             <Button type="submit" disabled={isSubmitting} variant="contained" className="col-span-12  w-full  mt-4  ">
               {isSubmitting ? (
                 <Box sx={{ width: "100%", py: 1 }}>
