@@ -2,9 +2,12 @@
 
 import useAxiosAuth from "@/lib/hooks/useAxiosAuth";
 import { cn } from "@/lib/utils";
+import { DEFAULT_LIMIT } from "@/utils/constants";
 import { NumParams } from "@/utils/params";
+import { formUrlQuery } from "@/utils/quey";
+import { IPagination } from "@/utils/types";
 import EditIcon from "@mui/icons-material/Edit";
-import { Skeleton, Tooltip } from "@mui/material";
+import { Button, Skeleton, Tooltip } from "@mui/material";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -13,11 +16,14 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { styled } from "@mui/material/styles";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import toast from "react-hot-toast";
 import Empty from "../empty";
 import ActionDeleteModal from "../modal/delete";
+import PaginationPage from "../pagination-page";
+
 interface IProduct {
   id: number;
   name: string;
@@ -41,36 +47,55 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 interface TableMachineProps {
-  searching: boolean;
-  callback: () => any;
-  data?: {
-    id: string;
-    name: string;
-    type: string;
-  }[];
+  id: string;
+  name: string;
+  type: string;
 }
 
-const TableMachine = ({ data, searching, callback }: TableMachineProps) => {
+const TableMachine = () => {
+  const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const id = searchParams.get("id");
   const page = NumParams(searchParams.get("page"), 1);
+  const limit = NumParams(searchParams.get("limit"), DEFAULT_LIMIT);
+
   const hasId = !!id;
   const axiosAuth = useAxiosAuth();
+  const keyQuery = [
+    "machines",
+    {
+      page,
+      limit,
+      keepPreviousData: true,
+      type: "list",
+    },
+  ];
+  const cache = queryClient.getQueryData<any>(keyQuery);
+  const lastPagination = cache?.pagination || (cache?.keepPreviousData?.pagination as IPagination);
+  const machines = cache?.machines || [];
+  const data = machines as TableMachineProps[];
+
+  const isFetching = useIsFetching({ queryKey: ["machines", { type: "list" }] });
+  // const isPending = u({ queryKey: ["machines", { type: "list" }] });
+  const searching = !!isFetching;
 
   const update = Number(id);
   let url = `${pathname}?${searchParams}`;
-
   const cleanAfterRemove = useCallback(async () => {
-    let newUrl = url.replace(`&id=${id}`, "");
-    if (data && data?.length === 1 && page > 1) {
-      newUrl = newUrl.replace(`page=${page}`, `page=${page - 1}`);
-      router.push(`${newUrl}`, { scroll: false });
+    if (page > 1 && data?.length === 1) {
+      const newUrl = formUrlQuery({
+        params: searchParams.toString(),
+        key: "page",
+        value: ` ${page - 1}`,
+      });
+      router.push(newUrl, { scroll: false });
     }
-    callback();
-    // router.refresh();
-  }, [id, router, url, page, data, callback]);
+    await queryClient.invalidateQueries({
+      queryKey: ["machines", { type: "list" }],
+    });
+  }, [router, page, data, searchParams, queryClient]);
 
   const handleDeleteMachine = async (id: string) => {
     try {
@@ -79,74 +104,78 @@ const TableMachine = ({ data, searching, callback }: TableMachineProps) => {
       toast.success("Maquina detetada com sucesso");
     } catch (error: any) {
       if (error?.response?.status === 409) toast.error("Maquina em uso em ponto de acesso");
-      else toast.error("Erro ao detetar o produto verifique se há demandas feitas com o produto");
+      else toast.error("Erro ao detetar o maquina");
     }
   };
 
   const handleEditUrl = async (idMachine: string) => {
-    const newUrl = hasId ? url.replace(`&id=${id}`, `&id=${idMachine}`) : url + `&id=${idMachine}`;
-    router.push(`${newUrl}`, { scroll: false });
+    const newUrl = formUrlQuery({
+      params: searchParams.toString(),
+      key: "id",
+      value: idMachine,
+    });
+    router.push(newUrl, { scroll: false });
   };
   return (
-    <div className="flex flex-col ">
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 700 }} aria-label="customized table">
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>Index</StyledTableCell>
-              <StyledTableCell align="left">Nome</StyledTableCell>
-              <StyledTableCell align="left">Tipo</StyledTableCell>
-              <StyledTableCell align="right">Ações</StyledTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data &&
-              data.length > 0 &&
-              data.map((row, index) => (
-                <StyledTableRow
-                  data-test={`row-machine-${index}`}
-                  key={row.id}
-                  className={cn("cursor-pointer hover:bg-sky-200", id === row.id && "bg-yellow-200")}
-                >
-                  <StyledTableCell component="th" scope="row">
-                    {index + 1}
-                  </StyledTableCell>
-                  <StyledTableCell align="left">{row.name}</StyledTableCell>
-                  <StyledTableCell align="left">{row.type}</StyledTableCell>
-                  <StyledTableCell align="right">
-                    <div className="flex flex-row-reverse items-center ">
-                      <ActionDeleteModal
-                        data-test={`delete-button-${index + 1}`}
-                        title="Deseja deletar essa maquina"
-                        onConfirm={() => handleDeleteMachine(row.id)}
-                      />
-                      {/* <Tooltip
-                        title="Excluir"
-                        onClick={() => handleEditUrl(row.id)}
-                        data-test={`edit-button-${index + 1}`}
-                      >
-                        <Delete />
-                      </Tooltip> */}
-                      <Tooltip
-                        title="Editar"
-                        onClick={() => handleEditUrl(row.id)}
-                        data-test={`edit-button-${index + 1}`}
-                      >
-                        <EditIcon />
-                      </Tooltip>
-                    </div>
-                  </StyledTableCell>
-                </StyledTableRow>
-              ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      {searching &&
-        Array.from(Array(5), (_, i) => (
-          <Skeleton key={i} variant="rectangular" height={60} className="mt-2" data-test={"skeleton-machine"} />
-        ))}
-      {!searching && data && data.length === 0 && <Empty label={"Nenhuma Maquina cadastrada"} />}
-    </div>
+    <>
+      <div className="flex flex-col px-6">
+        {/* <p>{!!isFetchingPosts ? "load" : "aqui "}</p> */}
+        <TableContainer component={Paper}>
+          <Table sx={{ minWidth: 700 }} aria-label="customized table">
+            <TableHead>
+              <TableRow>
+                <StyledTableCell>Index</StyledTableCell>
+                <StyledTableCell align="left">Nome</StyledTableCell>
+                <StyledTableCell align="left">Tipo</StyledTableCell>
+                <StyledTableCell align="right">Ações</StyledTableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!searching &&
+                data &&
+                data.length > 0 &&
+                data.map((row, index) => (
+                  <StyledTableRow
+                    data-test={`row-machine-${index}`}
+                    key={row.id}
+                    className={cn("cursor-pointer hover:bg-sky-200", id === row.id && "bg-yellow-200")}
+                  >
+                    <StyledTableCell component="th" scope="row">
+                      {index + 1}
+                    </StyledTableCell>
+                    <StyledTableCell align="left">{row.name}</StyledTableCell>
+                    <StyledTableCell align="left">{row.type}</StyledTableCell>
+                    <StyledTableCell align="right">
+                      <div className="flex flex-row items-center ">
+                        <hr />
+                        <Button onClick={() => handleEditUrl(row.id)} type="button">
+                          <Tooltip title="Editar" data-test={`edit-button-${index + 1}`}>
+                            <EditIcon htmlColor="black" />
+                          </Tooltip>
+                        </Button>
+                        <ActionDeleteModal
+                          data-test={`delete-button-${index + 1}`}
+                          title="Deseja deletar essa maquina"
+                          onConfirm={() => handleDeleteMachine(row.id)}
+                        />
+                      </div>
+                    </StyledTableCell>
+                  </StyledTableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {searching &&
+          Array.from(Array(5), (_, i) => (
+            <Skeleton key={i} variant="rectangular" height={60} className="mt-2" data-test={"skeleton-machine"} />
+          ))}
+        {!searching && data && data.length === 0 && <Empty label={"Nenhuma Maquina cadastrada"} />}
+      </div>
+
+      <div className="flex  mt-auto ">
+        <PaginationPage page={page} count={lastPagination?.count} limit={limit} />
+      </div>
+    </>
   );
 };
 

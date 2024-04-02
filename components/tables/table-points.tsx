@@ -1,11 +1,18 @@
 "use client";
 
+import { sensorsList } from "@/app/(dashboard)/points/constants";
+import { handleApiError } from "@/lib/api/erros";
+import { deleteAccessPoint } from "@/lib/api/services/points";
 import useAxiosAuth from "@/lib/hooks/useAxiosAuth";
 import { cn } from "@/lib/utils";
+import { DEFAULT_LIMIT } from "@/utils/constants";
+import { isUUID } from "@/utils/id";
 import { IPointsList } from "@/utils/interafce/points";
-import { NumParams } from "@/utils/params";
+import { NumParams, StringParams, StringParamsCheck } from "@/utils/params";
+import { formUrlQuery, removeKeysFromQuery } from "@/utils/quey";
+import { IPagination } from "@/utils/types";
 import EditIcon from "@mui/icons-material/Edit";
-import { Skeleton, Tooltip } from "@mui/material";
+import { Button, Skeleton, Tooltip } from "@mui/material";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -14,16 +21,15 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { styled } from "@mui/material/styles";
+import { useIsFetching, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import Empty from "../empty";
 import ActionDeleteModal from "../modal/delete";
 import PointModal from "../modal/point";
-interface IProduct {
-  id: number;
-  name: string;
-}
+import PaginationPage from "../pagination-page";
+
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
     backgroundColor: theme.palette.common.black,
@@ -43,116 +49,161 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     border: 0,
   },
 }));
-interface TablePointsProps {
-  searching: boolean;
-  callback: () => any;
-  data: IPointsList[] | [];
-}
 
-const TablePoints = ({ data, searching, callback }: TablePointsProps) => {
+const TablePoints = () => {
   const router = useRouter();
-  const [openModal, setOpenModal] = useState(false);
   const searchParams = useSearchParams();
-  const pathname = usePathname();
   const id = searchParams.get("id");
-  const page = NumParams(searchParams.get("page"), 1);
-  const hasId = !!id;
-  const axiosAuth = useAxiosAuth();
-
-  let url = `${pathname}?${searchParams}`;
-
-  const cleanAfterRemove = useCallback(async () => {
-    let newUrl = url.replace(`&id=${id}`, "");
-    if (data && data?.length === 1 && Number(page) > 1) {
-      newUrl = newUrl.replace(`page=${page}`, `page=${page - 1}`);
-      router.push(`${newUrl}`, { scroll: false });
-    }
-    callback();
-    // router.refresh();
-  }, [id, url, page, data, callback, router]);
-
-  const handleDeletePoint = async (id: string) => {
-    try {
-      const req = await axiosAuth.delete(`/access_points/${id}`);
-      cleanAfterRemove();
-      toast.success("Maquina detetada com sucesso");
-    } catch (error) {
-      toast.error("Erro ao detetar o produto verifique se há demandas feitas com o produto");
-    }
+  const hasId = isUUID(id);
+  const [openModal, setOpenModal] = useState(hasId);
+  const pathname = usePathname();
+  const pagination = {
+    page: NumParams(searchParams.get("page"), 1),
+    count: 1,
+    limit: NumParams(searchParams.get("limit"), DEFAULT_LIMIT),
+    search: StringParams(searchParams.get("search")),
+    sensor: StringParamsCheck(searchParams.get("sensor"), "", sensorsList),
+    sensorID: StringParams(searchParams.get("sensorID")),
   };
 
-  const handleEditUrl = async (idMachine: string) => {
-    const newUrl = hasId ? url.replace(`&id=${id}`, `&id=${idMachine}`) : url + `&id=${idMachine}`;
+  const axiosAuth = useAxiosAuth();
+  const queryClient = useQueryClient();
+  const keyQuery = [
+    "access_points",
+    {
+      name: pagination.search,
+      sensor: pagination.sensor,
+      sensorID: pagination.sensorID,
+      page: pagination.page,
+      limit: pagination.limit,
+      keepPreviousData: true,
+      type: "list",
+    },
+  ];
+  const cache = queryClient.getQueryData<any>(keyQuery);
+  const points = cache?.points || [];
+  const data = points as IPointsList[] | [];
+  const dataLength = data?.length || 0;
+  const lastPagination = cache?.pagination as IPagination;
+  const isFetching = useIsFetching({ queryKey: keyQuery });
+  const searching = !!isFetching;
+  const cleanAfterRemove = useCallback(async () => {
+    if (dataLength === 1 && pagination.page > 1) {
+      const newUrl = formUrlQuery({
+        params: searchParams.toString(),
+        key: "page",
+        value: ` ${pagination.page - 1}`,
+      });
+      router.push(newUrl, { scroll: false });
+      return;
+    }
+    await queryClient.invalidateQueries({
+      queryKey: ["access_points", { type: "list" }],
+    });
+  }, [queryClient, dataLength, searchParams, pagination.page, router]);
+
+  const { mutate: deletePoint } = useMutation({
+    mutationFn: async (idMutate: string) => await deleteAccessPoint(idMutate),
+    onSuccess: async (data) => {
+      cleanAfterRemove();
+      toast.remove(data.toastId);
+      return true;
+    },
+    onError: (error) => {
+      handleApiError("Erro ao deletar ponto de acesso", error);
+    },
+  });
+
+  const handleEditUrl = async (idPoint: string, clean = true) => {
+    const newUrl = formUrlQuery({
+      params: searchParams.toString(),
+      key: "id",
+      value: idPoint,
+    });
     router.push(`${newUrl}`, { scroll: false });
-    setOpenModal(true);
+    setOpenModal(clean);
   };
   return (
-    <div className="flex flex-col ">
+    <>
       <PointModal
-        // onConfirm={() => handleDeletePoint(row.id)}
-        callback={() => callback()}
         update={true}
         openModal={openModal && hasId}
         closeModal={() => {
           setOpenModal(false);
+          const newUrl = removeKeysFromQuery({
+            params: searchParams.toString(),
+            keysToRemove: ["id"],
+          });
+          router.push(`${newUrl}`, { scroll: false });
         }}
       />
-      <TableContainer component={Paper}>
-        <Table sx={{ minWidth: 700 }} aria-label="customized table">
-          <TableHead>
-            <TableRow>
-              <StyledTableCell>Index</StyledTableCell>
-              <StyledTableCell align="left">Nome</StyledTableCell>
-              <StyledTableCell align="left">Sensor</StyledTableCell>
-              <StyledTableCell align="left">SensorID</StyledTableCell>
-              <StyledTableCell align="left">Maquina</StyledTableCell>
-              <StyledTableCell align="left">Tipo</StyledTableCell>
-              <StyledTableCell align="right">Ações</StyledTableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data &&
-              data.length > 0 &&
-              data.map((row, index) => (
-                <StyledTableRow
-                  data-test={`row-point-${index}`}
-                  key={row.id}
-                  className={cn(
-                    "cursor-pointer hover:bg-sky-200"
-                    // id === row.id && "bg-yellow-200"
-                  )}
-                >
-                  <StyledTableCell component="th" scope="row">
-                    {index + 1}
-                  </StyledTableCell>
-                  <StyledTableCell align="left">{row.name}</StyledTableCell>
-                  <StyledTableCell align="left">{row.sensor}</StyledTableCell>
-                  <StyledTableCell align="left">{row.sensorID}</StyledTableCell>
-                  <StyledTableCell align="left">{row.Machine.name}</StyledTableCell>
-                  <StyledTableCell align="left">{row.Machine.type}</StyledTableCell>
-                  <StyledTableCell align="right">
-                    <div className="flex flex-row-reverse items-center ">
-                      <ActionDeleteModal
-                        title="Deseja deletar esse ponto de acesso"
-                        onConfirm={() => handleDeletePoint(row.id)}
-                      />
-
-                      <Tooltip title="Editar" onClick={() => handleEditUrl(row.id)} data-test={`edit-row-${index}`}>
-                        <EditIcon />
-                      </Tooltip>
-                    </div>
-                  </StyledTableCell>
-                </StyledTableRow>
-              ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      {searching &&
-        Array.from(Array(5), (_, i) => (
-          <Skeleton data-test={`skeleton-row-point-${i}`} key={i} variant="rectangular" height={60} className="mt-2" />
-        ))}
-      {!searching && data && data.length === 0 && <Empty label={"Nenhuma Maquina cadastrada"} />}
-    </div>
+      <div className="h-full px-6 ">
+        <TableContainer component={Paper}>
+          <Table sx={{ minWidth: 700 }} aria-label="customized table">
+            <TableHead>
+              <TableRow>
+                <StyledTableCell>Index</StyledTableCell>
+                <StyledTableCell align="left">Nome</StyledTableCell>
+                <StyledTableCell align="left">Sensor</StyledTableCell>
+                <StyledTableCell align="left">SensorID</StyledTableCell>
+                <StyledTableCell align="left">Maquina</StyledTableCell>
+                <StyledTableCell align="left">Tipo</StyledTableCell>
+                <StyledTableCell align="right">Ações</StyledTableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!searching &&
+                data &&
+                data.length > 0 &&
+                data.map((row, index) => (
+                  <StyledTableRow
+                    data-test={`row-point-${index}`}
+                    key={row.id}
+                    className={cn("cursor-pointer hover:bg-sky-200", id === row.id && "bg-yellow-200")}
+                  >
+                    <StyledTableCell component="th" scope="row">
+                      {index + 1}
+                    </StyledTableCell>
+                    <StyledTableCell align="left">{row.name}</StyledTableCell>
+                    <StyledTableCell align="left">{row.sensor}</StyledTableCell>
+                    <StyledTableCell align="left">{row.sensorID}</StyledTableCell>
+                    <StyledTableCell align="left">{row.Machine.name}</StyledTableCell>
+                    <StyledTableCell align="left">{row.Machine.type}</StyledTableCell>
+                    <StyledTableCell align="right">
+                      <div className="flex flex-row items-center ">
+                        <hr />
+                        <Button onClick={() => handleEditUrl(row.id)} type="button">
+                          <Tooltip title="Editar" onClick={() => handleEditUrl(row.id)} data-test={`edit-row-${index}`}>
+                            <EditIcon htmlColor="black" />
+                          </Tooltip>
+                        </Button>
+                        <ActionDeleteModal
+                          title="Deseja deletar esse ponto de acesso"
+                          onConfirm={() => deletePoint(row.id)}
+                        />
+                      </div>
+                    </StyledTableCell>
+                  </StyledTableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {searching &&
+          Array.from(Array(5), (_, i) => (
+            <Skeleton
+              data-test={`skeleton-row-point-${i}`}
+              key={i}
+              variant="rectangular"
+              height={60}
+              className="mt-2"
+            />
+          ))}
+        {!searching && data && data.length === 0 && <Empty label={"Nenhuma Maquina cadastrada"} />}
+      </div>
+      <div className="flex flex-col px-6 mt-0 ">
+        <PaginationPage page={pagination.page} count={lastPagination?.count} limit={pagination.limit} />
+      </div>
+    </>
   );
 };
 

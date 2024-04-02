@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className=" h-full min-h-full relative ">
       <PersistentDrawerLeft />
-      <main className="pt-14 p-4 h-full min-h-full ">{children}</main>
+      <main className="pt-14 p-4 flex flex-col h-screen justify-between ">{children}</main>
     </div>
   );
 }
