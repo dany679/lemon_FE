@@ -5,13 +5,13 @@ const defaultEnv = {
   webTitle: "Company Box",
 };
 export default defineConfig({
-  projectId: "i5nom3",
+  projectId: process.env.projectId,
   env: {
     ...defaultEnv,
     NEXT_BASE_HTTP: process.env.NEXT_PUBLIC_HTTP,
   },
   e2e: {
-    defaultCommandTimeout: 10000,
+    defaultCommandTimeout: 20000,
     env: {
       ...defaultEnv,
       email: process.env.email,
