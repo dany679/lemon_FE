@@ -11,3 +11,6 @@ export interface Machine {
   name: string;
   type: string;
 }
+export interface IMachine extends Machine {
+  id?: string;
+}

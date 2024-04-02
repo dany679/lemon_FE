@@ -1,21 +1,19 @@
 "use client";
 import ButtonClose from "@/components/button-close";
 import Loader from "@/components/loader";
-import TableMachine from "@/components/tables/table-machines";
-// import { Button } from "@/components/ui/button";
-import PaginationPage from "@/components/pagination-page";
+import { useMachine, useMachineId, useMachineMutation } from "@/lib/api/services/machines";
 import useAxiosAuth from "@/lib/hooks/useAxiosAuth";
-import { BASE_HTTP } from "@/utils/constants";
+import { DEFAULT_LIMIT } from "@/utils/constants";
 import { isUUID } from "@/utils/id";
 import { NumParams } from "@/utils/params";
+import { removeKeysFromQuery } from "@/utils/quey";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, TextField } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import toast from "react-hot-toast";
 import z from "zod";
-import { IPagination, initialPagination } from "../../../utils/types.d";
 import { formSchema } from "./constants";
 
 const FormProducts = () => {
@@ -24,13 +22,9 @@ const FormProducts = () => {
   const hasUUid = isUUID(id);
   const pathname = usePathname();
   const url = `${pathname}?${searchParams}`;
-  const [update, setUpdate] = useState<false | number>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [data, setData] = useState();
-  const [backPagination, setBackPagination] = useState<IPagination>(initialPagination);
   const axiosAuth = useAxiosAuth();
-
   const router = useRouter();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -39,108 +33,57 @@ const FormProducts = () => {
       id: undefined,
     },
   });
-  const { register, control } = form;
+  const { register, control, setValue } = form;
   const { isSubmitting, errors } = form.formState;
+  const queryClient = useQueryClient();
+  const { isSuccess: hasMachineForm, data: machineForm } = useMachineId(id);
 
+  useEffect(() => {
+    if (hasMachineForm && machineForm.id === id) {
+      const data = machineForm;
+      setValue("name", data.name);
+      setValue("id", data.id);
+      setValue("type", data.type);
+    }
+  }, [id, hasMachineForm, machineForm, setValue]);
   let pagination = {
     page: NumParams(searchParams.get("page"), 1),
-    count: 20,
-    limit: NumParams(searchParams.get("limit"), 5),
-
+    count: 1,
+    limit: NumParams(searchParams.get("limit"), DEFAULT_LIMIT),
     search: searchParams.get("search") || undefined,
   };
-  const getData = useCallback(async () => {
-    setIsLoading(() => true);
-    try {
-      const { data } = await axiosAuth.get(`/machines?page=${pagination.page}&limit=${pagination.limit}`);
-      setData(data.machines);
-      setBackPagination(data.pagination);
-    } catch (error) {
-      // toast.error("Erro ao carregar os produtos");
-    } finally {
-      setIsLoading(() => false);
-    }
-  }, [pagination.page, axiosAuth, pagination.limit]);
-  const removeUUI = useCallback(async () => {
-    form.reset();
-    const newUrl = url.replace(`&id=${id}`, "");
-    router.push(`${newUrl}`, { scroll: false });
-  }, [id, form, router, url]);
-  useEffect(() => {
-    const getProduct = async () => {
-      if (!hasUUid) return;
-      try {
-        const { data } = await axiosAuth.get(`${BASE_HTTP}/machines/${id}`);
-        form.setValue("name", data.name);
-        form.setValue("id", data.id);
-        form.setValue("type", data.type);
-        // setUpdate(id);
-      } catch (error) {
-        toast.error("Erro ao carregar os produto");
-      }
-    };
-    getProduct();
-    return () => {
-      form.reset();
-      setUpdate(false);
-    };
-  }, [hasUUid, id, form, axiosAuth]);
-  useEffect(() => {
-    getData();
-    return () => {
-      setData([]);
-    };
-  }, [getData]);
 
-  const onSubmitting = async (values: z.infer<typeof formSchema>) => {
-    const update = values.id;
-    const toastId = toast.loading(update ? "Atualizando maquina" : "Criando maquina");
-    try {
-      const req = update
-        ? await axiosAuth.put(`${BASE_HTTP}/machines/${values.id}`, {
-            ...values,
-          })
-        : await axiosAuth.post(`${BASE_HTTP}/machines`, {
-            ...values,
-          });
-      if (update) removeUUI();
-      toast.success(`maquina ${update ? "atualizado" : "cadastrado"} com sucesso`, {
-        id: toastId,
-      });
-      getData();
-    } catch (error: any) {
-      toast.error(`erro ao ${update ? "atualizar" : "cadastrar"} maquina`, {
-        id: toastId,
-      });
-    } finally {
-      router.refresh();
-    }
+  const { isFetching: isLoading } = useMachine(pagination);
+  const clearForm = () => {
+    form.reset();
+    if (!id) return;
+
+    const newUrl = removeKeysFromQuery({
+      params: searchParams.toString(),
+      keysToRemove: ["id"],
+    });
+    router.push(`${newUrl}`, { scroll: false });
+  };
+  const mutate = useMachineMutation(() => clearForm());
+  const { isPending: isSubmittingForm, mutate: sendMutate } = mutate;
+
+  const sendMutation = async (values: z.infer<typeof formSchema>) => {
+    const res = sendMutate({
+      ...values,
+    });
   };
 
   return (
-    <div className="">
-      {/* <Form {...form}> */}
-      <ButtonClose
-        classNameButton="top-2"
-        onClick={() => {
-          if (!id) {
-            form.reset();
-            return;
-          }
-          const newUrl = url.replace(`&id=${id}`, "");
-          router.push(`${newUrl}`, { scroll: false });
-        }}
-      />
-
+    <>
+      <ButtonClose classNameButton="top-2" onClick={() => clearForm()} />
       <form
-        onSubmit={form.handleSubmit(onSubmitting)}
-        className="rounded-lg border w-full  px-3 md:px-6 focus-within:shadow-sm grid grid-cols-12 gap-2"
+        onSubmit={form.handleSubmit(sendMutation)}
+        className="rounded-lg border w-full  px-3 md:px-6 focus-within:shadow-sm grid grid-cols-12 gap-2 pb-4"
         data-test="form-machine"
       >
         <TextField
           data-test="name-form"
           className="border-1 border-r-emerald-400 col-span-6 "
-          // InputProps={{ disableUnderline: true }}
           {...register("name", {
             required: "Nome é obrigatorio",
           })}
@@ -166,7 +109,31 @@ const FormProducts = () => {
           type="text"
           variant="outlined"
         />
-        {/* <FormControl
+
+        <Button
+          variant="outlined"
+          type="submit"
+          className="col-span-12 md:col-span-2 w-full py-4  mt-auto mb-auto"
+          disabled={isLoading || isSubmittingForm}
+        >
+          {isSubmitting ? "..." : ""}
+          {hasUUid && form.getValues("id") === id ? "atualizar " : "criar"}
+        </Button>
+      </form>
+      {isSubmitting && (
+        <>
+          <div className="p-8 rounded-lg w-full flex item-center justify-center bg-muted">
+            <Loader />
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+export default FormProducts;
+
+/* <FormControl
           fullWidth
           className="border-1 border-r-emerald-400 col-span-4 md:col-span-2 min-w-[80px]"
         >
@@ -186,33 +153,4 @@ const FormProducts = () => {
             <MenuItem value={"Rotation"}>RT-41</MenuItem>
             <MenuItem value={"Fluid"}>RT-42</MenuItem>
           </Select>
-        </FormControl> */}
-
-        <Button
-          variant="outlined"
-          type="submit"
-          className="col-span-12 md:col-span-2 w-full py-4  mt-auto mb-auto"
-          disabled={isLoading || isSubmitting}
-        >
-          {isSubmitting ? "..." : ""}
-          {hasUUid && form.getValues("id") === id ? "atualizar " : "criar"}
-        </Button>
-      </form>
-      {isSubmitting && (
-        <>
-          <div className="p-8 rounded-lg w-full flex item-center justify-center bg-muted">
-            <Loader />
-          </div>
-        </>
-      )}
-      <div className=" pt-4 px-6  flex flex-col justify-between min-h-[70%] max-h-[90vh] ">
-        <TableMachine data={data || []} searching={isLoading} callback={() => getData()} />
-        <div className="flex  mt-auto">
-          <PaginationPage page={pagination.page} count={backPagination.count} limit={pagination.limit} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default FormProducts;
+        </FormControl> */

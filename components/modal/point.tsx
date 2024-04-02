@@ -1,6 +1,8 @@
 import { formSchemaPoint, sensorTypeSend, sensorsList } from "@/app/(dashboard)/points/constants";
+import { useAccessPointId } from "@/lib/api/services/points";
 import useAxiosAuth from "@/lib/hooks/useAxiosAuth";
 import { cn } from "@/lib/utils";
+import { isUUID } from "@/utils/id";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -18,8 +20,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Modal from "@mui/material/Modal";
 import Typography from "@mui/material/Typography";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import * as React from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -41,9 +44,8 @@ type Props = {
   update: boolean;
   openModal?: boolean;
   closeModal?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
   title?: string;
-  callback?: () => void;
   onConfirm?: () => void;
 };
 
@@ -53,21 +55,21 @@ type MachineProps = {
   type: string;
 };
 
-export default function PointModal({
-  children,
-  update,
-  openModal = false,
-  closeModal = () => {},
-  callback = () => {},
-}: Props) {
+export default function PointModal({ children, update, openModal = false, closeModal = () => {} }: Props) {
   const axiosAuth = useAxiosAuth();
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const findID = searchParams.get("id");
+  const id = isUUID(findID) ? findID : null;
 
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isLoadingMemo, setIsLoadingMemo] = React.useState(!!update);
-  const [options, setOptions] = React.useState<MachineProps[]>([]);
-  const [optionsD, setOptionsD] = React.useState<MachineProps | null>(null);
+  const queryClient = useQueryClient();
+  const callback = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["access_points", { type: "list" }],
+    });
+  };
+  // const [isLoading, setIsLoading] = useState(true);
+  const [options, setOptions] = useState<MachineProps[]>([]);
+  const [optionsD, setOptionsD] = useState<MachineProps | null>(null);
 
   const form = useForm<z.infer<typeof formSchemaPoint>>({
     resolver: zodResolver(formSchemaPoint),
@@ -79,55 +81,35 @@ export default function PointModal({
       id: undefined,
     },
   });
-  const { register, control } = form;
+  const { register, reset, setValue } = form;
   const { isSubmitting, errors } = form.formState;
 
-  const updatedModal = React.useCallback(async () => {
-    if (!update) return;
-    if (!openModal) return;
-    if (!id) return;
-    try {
-      setIsLoading(() => true);
-      const { data } = await axiosAuth.get(`/access_points/${id}`, {});
+  const { isSuccess, data, isError, isFetching: isLoading } = useAccessPointId(id,openModal);
+  useEffect(() => {
+    if (!isSuccess) return;
+    if (!id) {
+      reset();
+      setOptions(data?.options);
+      setOptionsD(null);
+
+      return;
+    } else if (data?.id === id) {
+      setValue("id", data.id);
+      setValue("machineId", data.machineId);
+      setValue("name", data.name);
+      setValue("sensor", data.sensor);
+      setValue("sensorID", data.sensorID);
       setOptionsD(data.Machine);
-      form.setValue("id", data.id);
-      form.setValue("machineId", data.machineId);
-      form.setValue("name", data.name);
-      form.setValue("sensor", data.sensor);
-      form.setValue("sensorID", data.sensorID);
-      // console.log(data);
-    } catch (error: any) {
-      //connection error
-      closeModal();
-    } finally {
-      setIsLoading(() => false);
+      setOptions(data.options);
     }
-  }, [axiosAuth, form, closeModal, openModal, update, id]);
-  const optionsFound = React.useCallback(async () => {
-    // if (!openModal) return;
-    try {
-      setIsLoading(() => true);
-      const { data } = await axiosAuth.get(`/machines/?page=1&limit=9999999`, {});
-      setOptions(data.machines);
-      return data.machines;
-    } catch (error: any) {
-      //connection error
+    if (isError) {
       closeModal();
-    } finally {
-      setIsLoading(() => false);
     }
-  }, [axiosAuth, closeModal]);
-  React.useEffect(() => {
-    optionsFound();
-    return () => {};
-  }, [optionsFound]);
-  React.useEffect(() => {
-    updatedModal();
+
     return () => {
-      form.reset();
-      setIsLoading(() => false);
+      reset();
     };
-  }, [updatedModal, form]);
+  }, [id, data, reset, isSuccess, setValue, closeModal, isError]);
 
   const onSubmitting = async (values: z.infer<typeof formSchemaPoint>) => {
     const toastId = toast.loading("Salvando...");
@@ -175,7 +157,7 @@ export default function PointModal({
             }}
           >
             <Typography id="modal-modal-title" variant="h6" component="h2">
-              Preencha as informações para criar um novo ponto de acesso
+              Preencha as informações para {update ? "atualizar" : "criar um novo"} ponto de acesso
             </Typography>
             <div className="absolute top-2 right-0">
               <Button type="button" onClick={closeModal}>

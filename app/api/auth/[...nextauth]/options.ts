@@ -34,7 +34,9 @@ export const options: NextAuthOptions = {
           };
           return user;
         }
-        return null; //if user data could not be retrieved
+        //if user data could not be retrieved
+        // return null;
+        throw new Error(data?.message || "Error check email and password");
       },
     }),
   ],
