@@ -5,12 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "DISABLE_ESLINT_PLUGIN=true next build ",
-    "start": "next start",
+    "start": "next start ",
     "lint": "next lint",
     "yarn-install": "yarn install --immutable",
     "cy:open": "cypress open",
-    "cy:run": "cypress  run",
-    "test": " cypress  run",
+    "start-watch": "wait-on http://localhost:3000",
+    "cy:run": "npx cypress run",
+    "test": "npx cypress run --record --key fd629ced-45be-47c1-85cc-175d3ffb6f41",
+    "test-ci": " CI=true start-server-and-test  start http://localhost:3000  test ",
+    "test-local": " CI=true start-server-and-test  start http://localhost:3000   cy:run ",
     "cy:spec": "cypress run --spec"
   },
   "dependencies": {
@@ -37,17 +40,17 @@
     "date-fns": "^2.30.0",
     "dotenv": "^16.4.5",
     "eslint": "8.47.0",
-    "eslint-config-next": "13.4.19",
+    "eslint-config-next": "^14.1.4",
     "eslint-plugin-cypress": "^2.15.1",
     "lucide-react": "^0.268.0",
     "moment": "^2.29.4",
-    "next": "13.4.19",
+    "next": "^14.1.4",
     "next-auth": "^4.23.2",
     "postcss": "8.4.28",
     "query-string": "^9.0.0",
-    "react": "18.2.0",
+    "react": "^18.2.0",
     "react-day-picker": "^8.8.2",
-    "react-dom": "18.2.0",
+    "react-dom": "^18.2.0",
     "react-hook-form": "^7.45.4",
     "react-hot-toast": "^2.4.1",
     "react-markdown": "^8.0.7",
@@ -57,12 +60,15 @@
     "tailwindcss-animate": "^1.0.6",
     "typescript": "5.1.6",
     "typewriter-effect": "^2.20.1",
+    "yarn-run-all": "^3.1.1",
     "zod": "^3.22.2"
   },
   "devDependencies": {
     "@tanstack/eslint-plugin-query": "^5.28.6",
     "@testing-library/cypress": "^10.0.1",
     "cypress": "^13.6.5",
-    "encoding": "^0.1.13"
+    "encoding": "^0.1.13",
+    "start-server-and-test": "^2.0.3",
+    "wait-on": "^7.2.0"
   }
 }
