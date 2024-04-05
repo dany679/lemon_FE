@@ -27,7 +27,7 @@
 
 TO GET THE NEXT_PUBLIC_HTTP
 
-https://github.com/dany679/Nest-company-D-BE
+[https://github.com/dany679/Nest-company-D-BE](https://github.com/dany679/Fix-Machines-Nest)
 
 case you run in localhost change in the .env file the place of the url to your localhost or get the url deployed.
 
