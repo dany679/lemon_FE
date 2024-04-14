@@ -5,18 +5,11 @@ import { Heading } from "@/components/Heading";
 import InputPassword from "@/components/inputs/password";
 import { DevTool } from "@hookform/devtools";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Box,
-  Button,
-  LinearProgress,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Button, LinearProgress, Stack, TextField, Typography } from "@mui/material";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MouseEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { formSchema } from "./constants";
@@ -28,20 +21,23 @@ interface IUser {
 
 export default function UserRegisterForm() {
   const [hydrated, setHydrated] = useState(false);
+  const [error, setError] = useState<null | string>(null);
 
   const router = useRouter();
 
   const onSubmitting = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const res = await signIn<"credentials">("credentials", {
-        ...values,
-        redirect: false,
-      });
-      if (res?.ok) router.push("/");
-    } catch (error) {
-    } finally {
-      form.reset();
-    }
+    const res = await signIn<"credentials">("credentials", {
+      ...values,
+      callbackUrl: "/",
+      redirect: false,
+    }).then(({ error, ok }: any) => {
+      setError(error);
+      console.error(error);
+      if (ok) {
+        form.reset();
+        router.push("/");
+      }
+    });
   };
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -77,25 +73,21 @@ export default function UserRegisterForm() {
               {...register("email", {
                 required: "Email é obrigatorio",
               })}
+              helperText={errors.email?.message}
+              FormHelperTextProps={{ id: "email-helper-id" }}
               error={!!errors.email}
-              helperText={!!errors.email?.message}
               label="Email"
               type="email"
               variant="outlined"
             />
 
-            <InputPassword
-              name="password"
-              register={register}
-              error={errors.password}
-            />
-
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              variant="contained"
-              className="col-span-12  w-full  mt-4  "
-            >
+            <InputPassword name="password" label="Senha" register={register} error={errors.password} />
+            {error && (
+              <Typography className="bg-red-100 text-red-500 rounded" px={1} py={1}>
+                {error}
+              </Typography>
+            )}
+            <Button type="submit" disabled={isSubmitting} variant="contained" className="col-span-12  w-full  mt-4  ">
               {isSubmitting ? (
                 <Box sx={{ width: "100%", py: 1 }}>
                   <LinearProgress />

@@ -8,21 +8,20 @@ import { signIn } from "next-auth/react";
 
 import { Heading } from "@/components/Heading";
 // import { FormControl } from "@/components/ui/form";
+import InputPassword from "@/components/inputs/password";
+import axios from "@/lib/axios";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, LinearProgress, Stack, TextField, Typography } from "@mui/material";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { formSchema } from "./constants";
 
-// interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
-import InputPassword from "@/components/inputs/password";
-import axios from "@/lib/axios";
-import { Box, LinearProgress } from "@mui/material";
-import Link from "next/link";
-import toast from "react-hot-toast";
 export default function UserRegisterForm() {
   const router = useRouter();
+  const [error, setError] = useState<null | string>(null);
   const onSubmitting = async (values: z.infer<typeof formSchema>) => {
     try {
       await axios.post(`/auth/signup`, {
@@ -36,7 +35,9 @@ export default function UserRegisterForm() {
       if (res?.ok) router.push("/");
       form.reset();
     } catch (error: any) {
-      if (error?.response?.status === 409) toast.error("Usuario já existe");
+      console.log(error);
+      // if (error?.response?.status === 409)
+      setError(error?.response?.data?.message || "Error creating account");
     } finally {
     }
   };
@@ -54,10 +55,7 @@ export default function UserRegisterForm() {
 
   return (
     <div className={cn("flex flex-col w-full m-10 max-w-md gap-4")}>
-      <Heading.title
-        title="Registre-se"
-        description="Crie sua conta ou faca login"
-      />
+      <Heading.title title="Registre-se" description="Crie sua conta ou faca login" />
       <Box>
         <form onSubmit={form.handleSubmit(onSubmitting)}>
           <Stack spacing={2} className="border-2 border-red-500/900  ">
@@ -83,17 +81,13 @@ export default function UserRegisterForm() {
               type="email"
               variant="outlined"
             />
-            <InputPassword
-              name="password"
-              register={register}
-              error={errors.password}
-            />
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              variant="contained"
-              className="col-span-12  w-full  mt-4  "
-            >
+            <InputPassword name="password" register={register} error={errors.password} />
+            {error && (
+              <Typography className="bg-red-100 text-red-500 rounded" px={1} py={1}>
+                {error}
+              </Typography>
+            )}
+            <Button type="submit" disabled={isSubmitting} variant="contained" className="col-span-12  w-full  mt-4  ">
               {isSubmitting ? (
                 <Box sx={{ width: "100%", py: 1 }}>
                   <LinearProgress />

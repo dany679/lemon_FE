@@ -34,7 +34,9 @@ export const options: NextAuthOptions = {
           };
           return user;
         }
-        return null; //if user data could not be retrieved
+        //if user data could not be retrieved
+        // return null;
+        throw new Error(data?.message || "Error check email and password");
       },
     }),
   ],
@@ -50,12 +52,7 @@ export const options: NextAuthOptions = {
     async session({ session, token, user }) {
       session.user = token as any;
 
-      return {
-        ...session,
-        user: {
-          ...session.user,
-        },
-      };
+      return session;
     },
   },
   pages: {

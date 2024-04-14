@@ -1,10 +1,8 @@
-import {
-  formSchemaPoint,
-  sensorTypeSend,
-  sensorsList,
-} from "@/app/(dashboard)/points/constants";
+import { formSchemaPoint, stateTypeSend, statesList } from "@/app/(dashboard)/points/constants";
+import { useAccessPointId } from "@/lib/api/services/points";
 import useAxiosAuth from "@/lib/hooks/useAxiosAuth";
 import { cn } from "@/lib/utils";
+import { isUUID } from "@/utils/id";
 import { zodResolver } from "@hookform/resolvers/zod";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -22,8 +20,9 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Modal from "@mui/material/Modal";
 import Typography from "@mui/material/Typography";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
-import * as React from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -45,9 +44,8 @@ type Props = {
   update: boolean;
   openModal?: boolean;
   closeModal?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
   title?: string;
-  callback?: () => void;
   onConfirm?: () => void;
 };
 
@@ -57,97 +55,64 @@ type MachineProps = {
   type: string;
 };
 
-export default function PointModal({
-  children,
-  update,
-  openModal = false,
-  closeModal = () => {},
-  callback = () => {},
-}: Props) {
+export default function PointModal({ children, update, openModal = false, closeModal = () => {} }: Props) {
   const axiosAuth = useAxiosAuth();
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const findID = searchParams.get("id");
+  const id = isUUID(findID) ? findID : null;
 
-  const [isLoading, setIsLoading] = React.useState(!!update);
-  const [isLoadingMemo, setIsLoadingMemo] = React.useState(!!update);
-  const [options, setOptions] = React.useState<MachineProps[]>([]);
-  const [optionsD, setOptionsD] = React.useState<MachineProps | null>(null);
+  const queryClient = useQueryClient();
+  const callback = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["access_points", { type: "list" }],
+    });
+  };
+  // const [isLoading, setIsLoading] = useState(true);
+  const [options, setOptions] = useState<MachineProps[]>([]);
+  const [optionsD, setOptionsD] = useState<MachineProps | null>(null);
 
   const form = useForm<z.infer<typeof formSchemaPoint>>({
     resolver: zodResolver(formSchemaPoint),
     defaultValues: {
       name: "",
-      sensorID: "",
-      sensor: undefined,
+      serialID: "",
+      state: undefined,
       machineId: "",
       id: undefined,
     },
   });
-  const { register, control } = form;
+  const { register, reset, setValue } = form;
   const { isSubmitting, errors } = form.formState;
 
-  const updatedModal = React.useCallback(async () => {
-    setIsLoading(() => true);
-    if (!update) return;
-    if (!openModal) return;
-    if (!id) return;
-    try {
-      const { data } = await axiosAuth.get(`/access_points/${id}`, {});
-      setOptionsD(data.Machine);
-      form.setValue("id", data.id);
-      form.setValue("machineId", data.machineId);
-      form.setValue("name", data.name);
-      form.setValue("sensor", data.sensor);
-      form.setValue("sensorID", data.sensorID);
-      // console.log(data);
-    } catch (error: any) {
-      //connection error
-      closeModal();
-    } finally {
-      setIsLoading(() => false);
-    }
-  }, [axiosAuth, form, closeModal, openModal, update, id]);
-  const optionsFound = React.useCallback(async () => {
-    setIsLoading(() => true);
-    if (!openModal) return;
-    try {
-      const { data } = await axiosAuth.get(
-        `/machines/?page=1&limit=9999999`,
-        {}
-      );
-      setOptions(data.machines);
-      return data.machines;
-    } catch (error: any) {
-      //connection error
-      closeModal();
-    } finally {
-      setIsLoading(() => false);
-    }
-  }, [axiosAuth, closeModal, openModal]);
-  React.useEffect(() => {
-    optionsFound();
-    return () => {};
-  }, [optionsFound]);
-  React.useEffect(() => {
-    updatedModal();
-    return () => {
-      form.reset();
-    };
-  }, [updatedModal, form]);
-  // const optionsMemo = React.useMemo(() => {
-  //   setIsLoadingMemo(() => true);
-  //   const defaultOption = optionsD;
-  //   try {
-  //     if (!id) return { options, default: null };
+  const { isSuccess, data, isError, isFetching: isLoading } = useAccessPointId(id, openModal);
+  useEffect(() => {
+    if (!isSuccess) return;
+    if (!id) {
+      reset();
+      setOptions(data?.options);
+      setOptionsD(null);
 
-  //     return { options, default: defaultOption };
-  //   } catch (error) {
-  //     return { options, default: defaultOption };
-  //   } finally {
-  //     setIsLoadingMemo(() => false);
-  //   }
-  // }, [options, optionsD, id]);
+      return;
+    } else if (data?.id === id) {
+      setValue("id", data.id);
+      setValue("machineId", data.machineId);
+      setValue("name", data.name);
+      setValue("state", data.state);
+      setValue("serialID", data.serialID);
+      setOptionsD(data.Machine);
+      setOptions(data.options);
+    }
+    if (isError) {
+      closeModal();
+    }
+
+    return () => {
+      reset();
+    };
+  }, [id, data, reset, isSuccess, setValue, closeModal, isError]);
+
   const onSubmitting = async (values: z.infer<typeof formSchemaPoint>) => {
+    const toastId = toast.loading("Salvando...");
     try {
       const update = values.id;
       const req = update
@@ -159,12 +124,15 @@ export default function PointModal({
             machineId: values.machineId,
           });
       // removeUUI();
-      toast.success(
-        `Ponto ${update ? "atualizado" : "cadastrado"} com sucesso`
-      );
+      toast.success(`Ponto ${update ? "atualizado" : "cadastrado"} com sucesso`, {
+        id: toastId,
+        duration: 5000,
+      });
       callback();
     } catch (error: any) {
-      toast.error(`Erro ao ${update ? "atualizar" : "cadastrar"} ponto`);
+      toast.error(`Erro ao ${update ? "atualizar" : "cadastrar"} ponto`, {
+        id: toastId,
+      });
     } finally {
       closeModal();
     }
@@ -180,7 +148,7 @@ export default function PointModal({
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
       >
-        <Box sx={style} className="w-[80%]  min-w-[350px] max-w-[820px]">
+        <Box sx={style} className="w-[80%]  min-w-[350px] max-w-[820px] ">
           <Stack
             sx={{
               justifyContent: "space-between",
@@ -189,7 +157,7 @@ export default function PointModal({
             }}
           >
             <Typography id="modal-modal-title" variant="h6" component="h2">
-              Preencha as informações para criar um novo ponto de acesso
+              Preencha as informações para {update ? "atualizar" : "criar um novo"} ponto de acesso
             </Typography>
             <div className="absolute top-2 right-0">
               <Button type="button" onClick={closeModal}>
@@ -207,7 +175,7 @@ export default function PointModal({
           )}
 
           {isLoading ? (
-            <Skeleton variant="rectangular" height={30} />
+            <Skeleton variant="rectangular" height={30} data-test="skeleton-modal-point" />
           ) : (
             <form
               {...form}
@@ -223,6 +191,8 @@ export default function PointModal({
                 {...register("name", {
                   required: "Nome é obrigatorio",
                 })}
+                data-test="point-name-id"
+                disabled={isLoading}
                 error={!!errors.name}
                 helperText={!!errors.name?.message}
                 value={form.watch("name") || ""}
@@ -231,35 +201,38 @@ export default function PointModal({
                 variant="outlined"
               />
               <TextField
+                data-test="serialID-point"
                 className="border-1 border-r-emerald-400 col-span-6 "
                 // InputProps={{ disableUnderline: true }}
-                {...register("sensorID")}
+                {...register("serialID")}
                 error={!!errors.name}
                 helperText={!!errors.name?.message}
-                value={form.watch("sensorID") || ""}
-                label="SensorID"
+                value={form.watch("serialID") || ""}
+                label="serial ID"
                 type="text"
                 variant="outlined"
               />
               <FormControl
                 fullWidth
                 className="border-1 border-r-emerald-400 col-span-5 min-w-[80px]"
+                data-test="sensor-point-modal-id"
               >
-                <InputLabel id="sensor-point-label">Sensor</InputLabel>
+                <InputLabel id="sensor-point-label">Estado</InputLabel>
                 <Select
                   labelId="sensor-point-label"
                   id="sensor-point"
-                  value={form.watch("sensor") || ""}
-                  error={!!errors.sensor}
+                  data-test="select-modal-id"
+                  value={form.watch("state") || ""}
+                  error={!!errors.state}
                   defaultValue={""}
-                  label="Sensor"
+                  label="Estado"
                   onChange={(event: SelectChangeEvent) => {
-                    const value = event.target.value as sensorTypeSend;
-                    form.setValue("sensor", value);
+                    const value = event.target.value as stateTypeSend;
+                    form.setValue("state", value);
                   }}
                 >
-                  {sensorsList.map((value) => (
-                    <MenuItem key={value} value={value}>
+                  {statesList.map((value, indexItem) => (
+                    <MenuItem key={value} value={value} data-test={`${value}`}>
                       {value}
                     </MenuItem>
                   ))}
@@ -269,9 +242,11 @@ export default function PointModal({
               <Autocomplete
                 className="col-span-7 "
                 disablePortal
+                disabled={isSubmitting}
                 autoComplete
                 noOptionsText="Nenhuma opção encontrada"
-                id="combo-box-demo"
+                id="auto-complete"
+                data-test="auto-complete-id"
                 options={options}
                 isOptionEqualToValue={(option, value) => {
                   return option.id === value.id;
@@ -285,17 +260,15 @@ export default function PointModal({
                   if (!!newValue) {
                     form.setValue("machineId", newValue.id);
                     setOptionsD(newValue);
-                  } else
-                    form.reset(
-                      {
-                        machineId: undefined,
-                      },
-                      { keepDirtyValues: true }
-                    );
+                  } else {
+                    form.resetField("machineId");
+                    setOptionsD(newValue);
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
                     {...params}
+                    data-test="text-field-id"
                     error={!!errors.machineId}
                     label="Maquina"
                     value={form.watch("machineId") || ""}
@@ -309,15 +282,11 @@ export default function PointModal({
                   type="submit"
                   color="success"
                   disabled={isSubmitting}
+                  data-test="form-point-button"
                 >
                   Enviar
                 </Button>
-                <Button
-                  variant="contained"
-                  color="inherit"
-                  className="mx-2"
-                  onClick={closeModal}
-                >
+                <Button variant="contained" color="inherit" className="mx-2" onClick={closeModal}>
                   Cancelar
                 </Button>
               </Stack>

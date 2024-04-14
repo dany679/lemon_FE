@@ -5,6 +5,8 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import MenuIcon from "@mui/icons-material/Menu";
 import MonitorIcon from "@mui/icons-material/Monitor";
+import InfoIcon from "@mui/icons-material/Info";
+
 import { Button, Stack, Typography } from "@mui/material";
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
@@ -61,7 +63,6 @@ export default function PersistentDrawerLeft() {
   const { data: session } = useSession();
 
   const user = session?.user || null;
-  // console.log(user);
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
 
@@ -87,12 +88,7 @@ export default function PersistentDrawerLeft() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{ flexGrow: 1 }}
-            className="truncate"
-          >
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className="truncate">
             {user?.name ? "Bem vindo " : ""}
             {user?.name || ""}
           </Typography>
@@ -104,11 +100,7 @@ export default function PersistentDrawerLeft() {
             </Link>
           ) : (
             <>
-              <Button
-                color="info"
-                variant="contained"
-                onClick={() => signOut()}
-              >
+              <Button color="info" variant="contained" onClick={() => signOut()} data-test="logout-id">
                 Sair
               </Button>
             </>
@@ -124,7 +116,8 @@ export default function PersistentDrawerLeft() {
             boxSizing: "border-box",
           },
         }}
-        variant="persistent"
+        // variant="persistent"
+        onClose={handleDrawerClose}
         anchor="left"
         open={open}
       >
@@ -135,21 +128,13 @@ export default function PersistentDrawerLeft() {
               height: "75%",
               position: "relative",
             }}
+            // className="bg-red-500"
           >
-            <Image
-              alt="Mountains"
-              src={"/logoD.png"}
-              layout="fill"
-              objectFit="contain"
-            />
+            <Image alt="Logo" src={"/logoD.png"} layout="fill" objectFit="fit" />
           </Stack>
 
           <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "ltr" ? (
-              <ChevronLeftIcon />
-            ) : (
-              <ChevronRightIcon />
-            )}
+            {theme.direction === "ltr" ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
         </DrawerHeader>
         <Divider />
@@ -161,15 +146,18 @@ export default function PersistentDrawerLeft() {
               icon: <MonitorIcon />,
               href: "/points",
             },
+            {
+              name: "Sobre",
+              icon:<InfoIcon />,
+              href: "/about",
+            },
           ].map((link, index) => (
             <Link
               href={link.href}
               key={link.name}
               className={cn(
                 "no-underline  text-gray-700",
-                pathName === link.href
-                  ? "text-gray-700 hover:bg-white/10 "
-                  : "text-zinc-500"
+                pathName === link.href ? "text-gray-700 hover:bg-white/10 " : "text-zinc-500"
               )}
             >
               <ListItem disablePadding>
@@ -177,9 +165,7 @@ export default function PersistentDrawerLeft() {
                   <ListItemIcon
                     className={cn(
                       "no-underline  text-gray-700",
-                      pathName === link.href
-                        ? "text-gray-700 hover:bg-white/10 "
-                        : "text-zinc-500"
+                      pathName === link.href ? "text-gray-700 hover:bg-white/10 " : "text-zinc-500"
                     )}
                   >
                     {link.icon}
