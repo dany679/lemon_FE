@@ -23,15 +23,16 @@
 - Search url
 - Deploy on vercel
 
-### BackEnd
+### BackEnd Nest
 
-TO GET THE NEXT_PUBLIC_HTTP
+
 
 [https://github.com/dany679/Nest-company-D-BE](https://github.com/dany679/Fix-Machines-Nest)
 
 case you run in localhost change in the .env file the place of the url to your localhost or get the url deployed.
 
 NEXT_PUBLIC_HTTP=
+
 
 ### Prerequisites
 
@@ -41,13 +42,16 @@ NEXT_PUBLIC_HTTP=
 
 O projeto sera um site de cadastro de maquinas e pontos de acesso <a href="https://vercel.com/" /> vercel</a> para rodar no seu próprio computador lembre de acessar de adicionar .env abaixo
 
+
 ## Licença
 
 MIT
 
 ## How To Run
 
+
 ### create .env file
+
 
 ```shell
   #baseUrl FOR CYPRESS TESTING IN GENERAL THE SAME AS THE NEXTAUTH_URL

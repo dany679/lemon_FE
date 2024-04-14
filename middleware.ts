@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
   // console.log("MIDDLEWARE-----------------------------------------------");
   // console.log(pathname);
 
+
   if (isPublic) return NextResponse.next();
   const token = await getToken({
     req: request,
