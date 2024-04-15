@@ -69,17 +69,17 @@ after run and sign-up add you email and password in the file.env to use cypress 
 ### Install packages
 
 ```shell
-yarn
+npm i
 ```
 
 ### Start the app
 
 ```shell
-$ yarn start
+$ npm start
 ```
 
 ### test using cypress
 
 ```shell
-$ yarn test
+$ npm test
 ```
