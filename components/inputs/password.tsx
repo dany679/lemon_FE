@@ -3,7 +3,7 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { TextField } from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
-import { useState } from "react";
+import React, { useState } from "react";
 import { FieldError } from "react-hook-form";
 interface formProps {
   name: string;
@@ -12,19 +12,12 @@ interface formProps {
   error: FieldError | undefined;
 }
 
-const InputPassword: React.FC<formProps> = ({
-  name,
-  register,
-  error,
-  label,
-}) => {
+const InputPassword: React.FC<formProps> = ({ name, register, error, label }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-  const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
   };
 

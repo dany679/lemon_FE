@@ -10,11 +10,26 @@ const Footer = () => {
         </div>
 
         <div className="flex flex-row items-center justify-center space-x-1 text-neutral-800 dark:text-neutral-100">
-          <Link href="https://github.com/dany679" rel="noreferrer" target="_blank">
+          {/* <button
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText("+55(38)988273087");
+              } catch (error) {}
+            }}
+            className="flex items-center justify-center space-x-1 border-0  bg-transparent hover:bg-transparent transition duration-300 ease-in-out cursor-pointer h-fit mb-2"
+          >
+            <PhoneIphoneIcon className="button_icons mx-2 text-cyan-800 hover:text-sky-500" />
+          </button> */}
+          <Link href="https://github.com/dany679" rel="noreferrer" target="_blank" data-testid="link-github">
             <GitHubIcon className="button_icons mx-2 text-gray-800 hover:text-gray-500" />
           </Link>
-          <Link href="https://www.linkedin.com/in/danie-dev/" rel="noreferrer" target="_blank">
-            <LinkedInIcon className="button_icons mx-2 text-[30px] text-sky-800 hover:text-sky-500" />
+          <Link
+            href="https://www.linkedin.com/in/danie-dev/"
+            rel="noreferrer"
+            target="_blank"
+            data-testid="link-linkedin"
+          >
+            <LinkedInIcon className="button_icons mx-2  text-sky-800 hover:text-sky-500" />
           </Link>
         </div>
       </div>

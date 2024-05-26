@@ -7,16 +7,14 @@ describe("login auth", () => {
   });
   it("should redirect unauthenticated user to sign-in page", () => {
     cy.clickLink("Registre-se");
-
-    console.log(Cypress.env("webTitle"), "AKO");
-    cy.cyGetTitle("registrar");
+    cy.cyGetTitle("Registrar");
   });
   it("should redirect unauthenticated user to login page", () => {
     cy.url().should("eq", Cypress.config().baseUrl + "/login");
     cy.get("h1").should("contain.text", "Login");
     cy.visit("/");
     cy.get("h1").should("contain.text", "Login");
-    cy.cyGetTitle("login");
+    cy.cyGetTitle("Login");
   });
   it("should show erros if the fields is black or incorrect", () => {
     cy.get('input[name = "email"]').type("user check now"); // Use email id

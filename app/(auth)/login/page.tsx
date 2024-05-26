@@ -13,13 +13,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import z from "zod";
 import { formSchema } from "./constants";
-interface IUser {
-  name: string;
-  email: string;
-  password: string;
-}
 
-export default function UserRegisterForm() {
+export default function LoginRegisterForm() {
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<null | string>(null);
 

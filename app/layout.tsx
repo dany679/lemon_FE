@@ -7,19 +7,18 @@ import { NextAuthProvider } from "@/providers/next-provider";
 import ProviderTanStack from "@/providers/tanstack-provider";
 import { Session, getServerSession } from "next-auth";
 import { Inter } from "next/font/google";
+import { ReactNode } from "react";
 import { authOptions } from "./api/auth/[...nextauth]/options";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+type Props = {
+  params: { slug: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+  title: string;
+};
 
-// export const metadata = {
-//   title: "Company Box",
-//   // description: "",
-//   icons: {
-//     icon: "/logo.png",
-//   },
-// };
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
+const inter = Inter({ subsets: ["latin"] });
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions);
   return (
     <html lang="en" className="h-full min-h-full">

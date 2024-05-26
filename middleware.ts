@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 const urls = [
   {
-    url: "/points",
-    name: "Pontos de acesso",
+    url: "/",
+    name: "Dashboard",
   },
   {
-    url: "/",
-    name: "Maquinas",
+    url: "/faturas",
+    name: "Faturas",
   },
   {
     url: "/about",
@@ -32,16 +32,15 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-url", request.url);
   // const session = request.cookies.get("token")?.value || "";
   const pathname = request.nextUrl.pathname;
-  const result = urls.find((item) => item.url === pathname);
-  const page = result?.name || "Not Found";
-  requestHeaders.set("title", page);
   const publicPaths = ["/login", "/registrar"];
   const isPublic =
     publicPaths.includes(pathname) || pathname.startsWith("/api/auth") || publicPaths.includes("/api/auth");
+  const result = urls.find((item) => item.url === pathname);
+  const page = isPublic && pathname === "/" ? "login" : result?.name || "Not Found";
+  requestHeaders.set("title", page);
 
   // console.log("MIDDLEWARE-----------------------------------------------");
   // console.log(pathname);
-
 
   if (isPublic) return NextResponse.next();
   const token = await getToken({

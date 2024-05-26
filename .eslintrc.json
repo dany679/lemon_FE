@@ -1,6 +1,26 @@
 {
-  "extends": ["next/core-web-vitals", "plugin:cypress/recommended"]
-  // "rules": {
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:cypress/recommended",
+    "eslint:recommended",
+    "plugin:@next/next/recommended"
+  ],
+  "types": ["node", "cypress", "jest", "@testing-library/jest-dom", "@testing-library/jest-dom/extend-expect"],
+  "rules": {
+    "no-unused-vars": "off"
+  },
+  "globals": {
+    "jest": "readonly"
+  },
+  "overrides": [
+    {
+      // "files": ["**/*.test.js"],
+      "env": {
+        "jest": true
+      }
+    }
+  ]
+  //rules": {
   //   "consistent-return": 2,
   //   "indent": [1, 4],
   //   "no-else-return": 1,

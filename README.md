@@ -3,7 +3,7 @@
 </p>
 
 <p>Link para visitar o site : 
-<a href="https://fix-machines-next-14.vercel.app/" />Demo</a>
+<a href="" />Not-Available-Demo</a>
 </p>
 <p align='center'> Basic web-site <p/>
 
@@ -25,7 +25,7 @@
 
 ### BackEnd Nest
 
-[https://github.com/dany679/Nest-company-D-BE](https://github.com/dany679/Fix-Machines-Nest)
+[https://github.com/dany679/Lemon-BE](https://github.com/dany679/Fix-Machines-Nest)
 
 case you run in localhost change in the .env file the place of the url to your localhost or get the url deployed.
 

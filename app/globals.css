@@ -20,3 +20,10 @@ body {
 .pill {
   @apply bg-gray-200 px-4 py-2 mr-2 mt-2 text-gray-700 dark:text-gray-600  rounded font-semibold;
 }
+
+.wrapper {
+  display: grid;
+  grid-gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-auto-rows: auto;
+}

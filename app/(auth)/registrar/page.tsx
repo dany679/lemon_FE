@@ -38,7 +38,6 @@ export default function UserRegisterForm() {
       console.log(error);
       // if (error?.response?.status === 409)
       setError(error?.response?.data?.message || "Error creating account");
-    } finally {
     }
   };
 

@@ -2,7 +2,7 @@ export interface IPagination {
   count: number;
   page: number;
   limit: number;
-  next: boolean;
+  next?: boolean;
   skip?: number;
 }
 export interface IPaginationAccessPoint extends IPagination {
@@ -10,6 +10,11 @@ export interface IPaginationAccessPoint extends IPagination {
   state: string;
   serialID: string;
   next?: boolean;
+}
+export interface IPaginationFees extends IPagination {
+  months: string;
+  date: string | Date | null;
+  nClient: string;
 }
 export interface IPaginationRequest {
   page: number;
