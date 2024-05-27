@@ -3,7 +3,7 @@
 </p>
 
 <p>Link para visitar o site : 
-<a href="https://lumi-fe-git-dev-dany679s-projects.vercel.app/login" />Vercel clique aqui</a>
+<a href="https://lumi-fe-git-dev-dany679s-projects.vercel.app/" />Vercel clique aqui</a>
 </p>
 <p align='center'> Basic web-site <p/>
 
