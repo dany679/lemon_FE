@@ -6,6 +6,6 @@ if (process.env.NODE_ENV === "development") {
 }
 export const config = {
   BASE_HTTP,
-  webTitle: "Lima",
+  webTitle: "Lumi",
   DEFAULT_QUERY_LIMIT: 5,
 };
