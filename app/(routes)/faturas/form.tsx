@@ -108,24 +108,16 @@ const FormSearch = () => {
         classNameButton="top-2"
         onClick={() => {
           if (!id) {
-            // console.log("EUUUUUUUUUUUUUuu");
-            // removeKeysFromQuery({
-            //   params: searchParams.toString(),
-            //   keysToRemove: ["date=2-2024", "&date", "?date", "?NClient"],
-            // });
             setValue("date", null);
             form.reset();
             return;
           }
-          // const newUrl = url.replace(`&id=${id}`, "");
-          // router.push(`${newUrl}`, { scroll: false });
         }}
       />
 
       <form className="rounded-lg border w-full  px-3 md:px-6 focus-within:shadow-sm grid grid-cols-12 gap-2 pb-4">
         <TextField
-          className="border-1 border-r-emerald-400 col-span-7 "
-          // InputProps={{ disableUnderline: true }}
+          className="border-1 border-r-emerald-400 col-span-6 md:col-span-5  "
           {...register("nClient", {
             required: "Numero do cliente é obrigatorio",
           })}
@@ -142,33 +134,11 @@ const FormSearch = () => {
 
         <FormControl
           fullWidth
-          className="border-1 border-r-emerald-400 col-span-3 min-w-[80px]"
+          className="border-1 border-r-emerald-400 col-span-6  md:col-span-5 min-w-[150px]"
           data-test="months-modal-id"
         >
           <DatePickerOpenTo value={form.watch("date") || null} setValue={(value) => setValue("date", value)} />
-          {/* <InputLabel id="months-label">Mês</InputLabel>
-          <Select
-            labelId="months-label"
-            id="months"
-            data-test="select-modal-id"
-            value={form.watch("months") || ""}
-            error={!!errors.months}
-            defaultValue={""}
-            label="Mes"
-            onChange={(event: SelectChangeEvent) => {
-              const value = event.target.value as string;
-              form.setValue("months", value ? String(value) : "todos");
-            }}
-          >
-            {monthCompleteStringList.map((value, indexItem) => (
-              <MenuItem key={value} value={value} data-test={`${value}`}>
-                {value}
-              </MenuItem>
-            ))}
-            <MenuItem value={"todos"} data-test={`all`}>
-              TODOS
-            </MenuItem>
-          </Select> */}
+         
         </FormControl>
 
         <Button
